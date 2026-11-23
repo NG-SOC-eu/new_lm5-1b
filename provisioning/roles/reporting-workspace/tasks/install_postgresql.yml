@@ -1,0 +1,67 @@
+---
+- name: Install PostgreSQL and Python bindings
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+    state: present
+    update_cache: true
+
+- name: Install acl package (required for Ansible become on Linux)
+  apt:
+    name: acl
+    state: present
+    update_cache: false
+
+- name: Ensure PostgreSQL service is started and enabled
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+# The psql tasks below run as become_user 'postgres'. Pre-create its Ansible
+# remote_tmp so Ansible doesn't emit a "remote_tmp did not exist" warning.
+- name: Ensure Ansible remote_tmp exists for the postgres user
+  ansible.builtin.file:
+    path: /var/lib/postgresql/.ansible/tmp
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0700"
+
+- name: Create REP reporting database
+  ansible.builtin.command:
+    cmd: >-
+      psql -c
+      "CREATE DATABASE {{ reporting_workspace_datasources[0].database }};"
+  become_user: postgres
+  register: pg_create_db
+  changed_when: "'CREATE DATABASE' in pg_create_db.stdout"
+  failed_when:
+    - pg_create_db.rc != 0
+    - "'already exists' not in pg_create_db.stderr"
+
+- name: Create REP reporting user
+  ansible.builtin.command:
+    cmd: >-
+      psql -c
+      "DO $$
+       BEGIN
+         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ reporting_workspace_datasources[0].user }}') THEN
+           CREATE USER {{ reporting_workspace_datasources[0].user }}
+             WITH PASSWORD '{{ reporting_workspace_datasources[0].secureJsonData.password }}';
+         END IF;
+       END
+       $$;"
+  become_user: postgres
+  changed_when: false
+  no_log: true
+
+- name: Grant reporting user privileges on reporting database
+  ansible.builtin.command:
+    cmd: >-
+      psql -c
+      "GRANT ALL PRIVILEGES ON DATABASE {{ reporting_workspace_datasources[0].database }}
+       TO {{ reporting_workspace_datasources[0].user }};"
+  become_user: postgres
+  changed_when: false

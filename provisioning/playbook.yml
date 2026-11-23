@@ -1,0 +1,103 @@
+---
+# Playbook for PUC2-Sub Case 2b - Network Vulnerability Identification Training
+
+# Configure /etc/hosts on all Linux nodes so internal hostnames resolve
+# without a DNS server.
+- name: Configure internal hostname resolution on Linux hosts
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Add internal hostnames to /etc/hosts
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} CyberRangeCZ lm5-subcase-2b internal hostnames"
+        block: |
+          10.20.10.40  lms.internal
+          10.20.20.10  rep-core.internal
+          10.20.30.10  reporting.internal
+          10.20.30.20  report-repository.internal  report-repo.internal
+          10.20.40.10  target-server  target-server.internal  cynet-apps.cynet.lab  dvwa.cynet.lab
+          10.20.40.20  cynet-dc1  cynet-dc1.internal  ldap.cynet.lab  identity.cynet.lab
+
+###### Backend: REP core microservice nginx proxy
+- name: Configure REP core services
+  hosts: rep-scheduler, rep-live-session, rep-quiz-engine, rep-practical-labs
+  become: true
+  roles:
+    - role: rep-core
+
+###### Backend: LMS course content portal (port 8080 on rep-practical-labs)
+# nginx is already installed by rep-core above; this role adds a second vhost.
+- name: Deploy LMS course content portal
+  hosts: rep-practical-labs
+  become: true
+  roles:
+    - role: lms-content
+
+###### Target network: vulnerable services (DVWA + weak-credential SSH)
+- name: Deploy target network vulnerable services
+  hosts: target-server
+  become: true
+  roles:
+    - role: target-network
+
+###### Analytics: Gitea report repository
+- name: Deploy report repository (Gitea)
+  hosts: report-repository
+  become: true
+  roles:
+    - role: report-repository
+
+###### Analytics: Grafana reporting workspace (with PostgreSQL)
+- name: Prepare the reporting workspace analytics stack
+  hosts: reporting-workspace
+  become: true
+  roles:
+    - role: reporting-workspace
+
+###### Frontend: instructor console
+- name: Personalise the instructor console
+  hosts: instructor-console
+  become: true
+  roles:
+    - role: instructor-console
+
+###### Frontend: pentest workstations
+- name: Configure pentest workstations
+  hosts: pentest-workstation-01,pentest-workstation-02
+  become: true
+  vars_files:
+    - ../group_vars/trainees.yml
+  roles:
+    - pentest-workstation
+    - pentest-tools
+
+###### Target network: CYNET DC1 - Identity & Access (OpenLDAP + phpLDAPadmin)
+- name: Deploy CYNET DC1 Identity and Access services
+  hosts: cynet-dc1
+  become: true
+  ignore_errors: true
+  roles:
+    - role: cynet-dc1
+
+
+###### Sandbox logging: syslog-ng relay on the MAN node
+- name: Configure syslog-ng forwarding on the MAN node
+  hosts: man
+  become: true
+  roles:
+    - role: man
+
+###### Sandbox logging: command logging on every Linux node
+- name: Set up command logging
+  hosts:
+    - routers
+    - hosts
+  roles:
+    - role: sandbox-logging
+      become: true
+      # Forward through the MAN relay (514) when the sandbox provides one,
+      # otherwise straight to the CyberRangeCZ collector (515).
+      slf_destination_port: "{{ 514 if ('man' in hostvars or groups.get('man', []) | length > 0) else 515 }}"
+      when: ansible_system == "Linux"

@@ -1,0 +1,27 @@
+# NOTE: Store real credentials in Ansible Vault or environment variables before running playbooks.
+# Example: export ANSIBLE_PASSWORD_REP_SCHEDULER and reference it as ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REP_SCHEDULER') }}"
+
+[rep_core]
+rep-scheduler ansible_host=10.20.10.10 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REP_SCHEDULER') }}"
+rep-live-session ansible_host=10.20.10.20 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REP_LIVE') }}"
+rep-quiz-engine ansible_host=10.20.10.30 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REP_QUIZ') }}"
+rep-practical-labs ansible_host=10.20.10.40 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REP_LABS') }}"
+
+[instructor_console]
+instructor-console ansible_host=10.20.20.10 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_INSTRUCTOR') }}"
+
+[pentest_workstations]
+pentest-workstation-01 ansible_host=10.20.20.50 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_PENTEST1') }}"
+pentest-workstation-02 ansible_host=10.20.20.60 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_PENTEST2') }}"
+
+[target_servers]
+target-server ansible_host=10.20.40.10 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_TARGET') }}"
+
+[cynet_targets]
+cynet-dc1 ansible_host=10.20.40.20 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_CYNET_DC1') }}"
+
+[reporting_workspace]
+reporting-workspace ansible_host=10.20.30.10 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REPORTING') }}"
+
+[report_repositories]
+report-repository ansible_host=10.20.30.20 ansible_user=ubuntu ansible_password="{{ lookup('env', 'ANSIBLE_PASSWORD_REPORT_REPO') }}"

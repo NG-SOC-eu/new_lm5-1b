@@ -1,0 +1,92 @@
+---
+# CYNET-like lab: DC1 Application Servers + Databases simulation
+# target-server (10.20.40.10)
+
+services:
+
+  # --- Storage / Databases layer ---
+
+  dvwa-db:
+    image: mariadb:10.11
+    container_name: cynet-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: dvwa
+      MYSQL_PASSWORD: {{ target_network_dvwa_db_password }}
+    ports:
+      # Intentional misconfiguration: database port exposed to host network
+      - "{{ target_network_mariadb_port }}:3306"
+    networks:
+      - cynet-storage-vlan
+
+  # --- Application Servers layer ---
+
+  dvwa:
+    # Pinned by digest. The training definition hard-codes the expected answers
+    # "Apache 2.4.25" (levels 10 + final test) and "Debian" (level 18) from this
+    # image, so the tag must NOT float. vulnerables/web-dvwa:latest has been frozen
+    # since 2018 (Apache/2.4.25 on Debian stretch); the digest below locks it.
+    # To bump the image you MUST update those graded answers in the training
+    # definition together. Refresh the digest with:
+    #   curl -s https://hub.docker.com/v2/repositories/vulnerables/web-dvwa/tags/latest | jq -r '.images[0].digest'
+    image: vulnerables/web-dvwa@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
+    container_name: cynet-dvwa
+    restart: unless-stopped
+    ports:
+      - "{{ target_network_dvwa_port }}:80"
+    environment:
+      DB_SERVER: dvwa-db
+      DB_USER: dvwa
+      DB_PASSWORD: {{ target_network_dvwa_db_password }}
+      DB_DATABASE: dvwa
+    depends_on:
+      - dvwa-db
+    networks:
+      - cynet-server-vlan
+      - cynet-storage-vlan
+
+  # Database admin panel: intentionally exposed without network restriction
+  # Simulates misconfigured Databases layer in DC1
+  phpmyadmin:
+    # Pinned by digest for a reproducible lab (tag resolved: phpmyadmin:latest).
+    # Refresh with:
+    #   curl -s https://hub.docker.com/v2/repositories/library/phpmyadmin/tags/latest | jq -r '.digest'
+    image: phpmyadmin@sha256:3a8a8d6b5289091f959ba0293f21163b3a2fc5741991a53de70b3497fe8d31db
+    container_name: cynet-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "{{ target_network_phpmyadmin_port }}:80"
+    environment:
+      PMA_HOST: dvwa-db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - dvwa-db
+    networks:
+      - cynet-server-vlan
+      - cynet-storage-vlan
+
+  # Core Services portal: default nginx page (misconfiguration: default page not replaced)
+  # Simulates DC1 Core Services web front-end
+  core-services:
+    image: nginx:alpine
+    container_name: cynet-core-services
+    restart: unless-stopped
+    ports:
+      - "{{ target_network_core_services_port }}:80"
+    networks:
+      - cynet-server-vlan
+
+networks:
+  # Simulates DC1 Server Network VLANs
+  cynet-server-vlan:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: cynet-srv
+  # Simulates DC1 Storage Network VLANs
+  cynet-storage-vlan:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: cynet-stor

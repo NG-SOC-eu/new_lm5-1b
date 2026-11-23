@@ -1,0 +1,171 @@
+{
+  "name": "CyberRangeCZ Practical Modules",
+  "description": "Learning sequence for PUC2-Sub Case 2b: Network Vulnerability Identification Training. Self-paced training for staff on penetration testing and vulnerability assessments via a hands-on educational platform simulating CYNET network infrastructure.",
+  "modules": [
+    {
+      "id": "subcase-2b",
+      "title": "PUC2-Sub Case 2b - Network Vulnerability Identification Training",
+      "phases": [
+        {
+          "name": "Training and invitation",
+          "description": "The Training Instructor creates the cyber range scenario and self-paced courses on the Hands-on Educational Platform, then invites trainees to access the training material.",
+          "activities": [
+            {
+              "step": 1,
+              "actor": "Training Instructor",
+              "target": "Hands-on Educational Platform",
+              "description": "The Training Instructor accesses the LMS course portal and the cyber range management console to create self-paced courses and configure the CYNET-like target network scenario. This includes defining the simulated network topology (target services, IP ranges, open ports), loading theory modules on network reconnaissance and vulnerability assessment, and setting learning objectives for the cohort.",
+              "tools": [
+                "LMS Course Portal (http://lms.internal:8080/)",
+                "Instructor console",
+                "Gitea Report Repository (http://report-repo.internal:3000/)"
+              ],
+              "success_criteria": "LMS course modules are published and accessible. Target network scenario is deployed (DVWA reachable at http://10.20.40.10/ and SSH service listening on 10.20.40.10:22). Gitea organisation and trainee repositories are created."
+            },
+            {
+              "step": 2,
+              "actor": "Training Instructor",
+              "target": "Trainee",
+              "description": "The Training Instructor sends invitations to trainees with access credentials for the LMS portal, the pentest workstation (SSH or Guacamole), and the Gitea report repository. The invitation includes the exercise brief: target network range (10.20.40.0/24), learning objectives, and submission deadline.",
+              "tools": [
+                "Instructor console",
+                "LMS Course Portal (http://lms.internal:8080/)",
+                "Gitea Report Repository (http://report-repo.internal:3000/)"
+              ],
+              "success_criteria": "Trainees have received credentials and can authenticate to the LMS portal and the pentest workstation. Gitea trainee repositories are accessible."
+            },
+            {
+              "step": 3,
+              "actor": "Trainee",
+              "target": "Hands-on Educational Platform",
+              "description": "The trainee accesses the LMS course portal from their pentest workstation browser, reviews the three theory modules on network reconnaissance, vulnerability scanning, and exploitation basics, and proceeds to the practical exercise tab to begin active scanning.",
+              "tools": [
+                "LMS Course Portal (http://lms.internal:8080/)",
+                "Pentest workstation browser",
+                "REP Quiz Engine"
+              ],
+              "success_criteria": "Trainee has completed all three theory modules and clicked 'Start Practical Exercise' to begin active reconnaissance against the target network."
+            }
+          ]
+        },
+        {
+          "name": "Recon and scanning",
+          "description": "Trainees gather technical information about the target network and conduct semi-automated vulnerability assessments using Nmap (network recon), OWASP ZAP (web application scanning), and Burp Suite (interactive web app testing). The target network returns consolidated findings covering both network-level and application-level vulnerabilities.",
+          "activities": [
+            {
+              "step": 4,
+              "actor": "Trainee",
+              "target": "Target Network",
+              "description": "The trainee uses Nmap, OWASP ZAP, and Burp Suite from their pentest workstation to gather technical information about the target network. Nmap discovers live hosts, enumerates open ports and service versions, and identifies network-level misconfigurations. ZAP spiders the DVWA web application and performs a passive baseline scan. Burp Suite is configured as an intercepting proxy for manual web application analysis. The target range is 10.20.40.0/24.",
+              "tools": [
+                "Nmap (nmap -sV -sC -O 10.20.40.0/24) — network recon",
+                "Pre-configured Nmap scan script (/opt/pentest/scripts/nmap-scan.sh)",
+                "OWASP ZAP baseline scan (/opt/pentest/scripts/zap-scan.sh) — web app passive + spider",
+                "Burp Suite Community (/opt/pentest/scripts/burp-launcher.sh) — intercepting proxy",
+                "Pentest workstation terminal"
+              ],
+              "success_criteria": "Trainee has run the Nmap scan against 10.20.40.0/24, the ZAP baseline scan against http://10.20.40.10/, and has configured Burp Suite as a browser proxy. Nmap output shows discovered hosts and services; ZAP baseline report saved to /opt/pentest/results/zap/."
+            },
+            {
+              "step": 5,
+              "actor": "Target Network",
+              "target": "Pen Test Tools",
+              "description": "The target network services (DVWA web application on port 80, weak-credential SSH on port 22) respond to all scan probes and exploitation attempts. Nmap triggers service fingerprinting and NSE script execution. ZAP spiders DVWA pages, intercepts HTTP responses, and executes passive vulnerability checks. Burp Suite captures and replays HTTP requests, enabling active exploitation of DVWA vulnerabilities including SQL injection and XSS. The target network records all interaction as scan evidence.",
+              "tools": [
+                "Nmap NSE scripts (http-enum, http-title, ssh-auth-methods, banner, vuln)",
+                "OWASP ZAP spider and passive scanner",
+                "OWASP ZAP full active scan (zap-full-scan.py)",
+                "Burp Suite Repeater and Intruder modules",
+                "Target Network services: DVWA (port 80/tcp), SSH (port 22/tcp)"
+              ],
+              "success_criteria": "Nmap NSE scripts executed against all services. ZAP spider has crawled DVWA and passive scan completed. Burp Suite Repeater has sent at least one manipulated request to DVWA. SSH banner and version information captured."
+            },
+            {
+              "step": 6,
+              "actor": "Pen Test Tools",
+              "target": "Target Network",
+              "description": "The penetration testing tools return consolidated findings covering both network and web application layers: Nmap produces XML reports with open ports, service versions, OS fingerprint, and CVE cross-references (via vulners NSE). ZAP produces HTML and JSON reports identifying OWASP Top 10 issues (SQL injection, XSS, missing security headers, insecure cookies). Burp Suite captures exploitable request/response pairs demonstrating authentication bypass and injection vulnerabilities on DVWA. All findings are saved to the trainee workspace.",
+              "tools": [
+                "Nmap output (XML + human-readable) in /opt/pentest/results/",
+                "Nmap vulners NSE script (CVE cross-reference)",
+                "OWASP ZAP HTML + JSON reports in /opt/pentest/results/zap/",
+                "Burp Suite project export / HTTP history"
+              ],
+              "success_criteria": "Nmap XML report saved to /opt/pentest/results/scan-<hostname>-<date>.xml with findings: open ports (80/tcp HTTP, 22/tcp SSH), service versions, DVWA detected. ZAP report saved to /opt/pentest/results/zap/ with at least one high/medium severity finding (e.g. SQL injection, XSS, missing Content-Security-Policy header). Burp Suite history shows at least one manually exploited DVWA vulnerability."
+            },
+            {
+              "step": 7,
+              "actor": "Target Network",
+              "target": "Trainee",
+              "description": "The consolidated vulnerability findings from all tools are available to the trainee: Nmap reports covering network services, ZAP reports covering OWASP Top 10 web vulnerabilities on DVWA, and Burp Suite session evidence of manually exploited weaknesses. The trainee correlates findings across tools, assigns CVSS severity scores, and maps each vulnerability to an affected service and a recommended mitigation. This multi-tool evidence base forms the foundation of the vulnerability report.",
+              "tools": [
+                "Nmap results (/opt/pentest/results/scan-*.xml)",
+                "OWASP ZAP reports (/opt/pentest/results/zap/zap-*.html)",
+                "Burp Suite project file / HTTP history export",
+                "LMS Practical Exercise tab (vulnerability mapping form)",
+                "REP Practical Labs - Findings view"
+              ],
+              "success_criteria": "Trainee can articulate at least five distinct vulnerabilities or misconfigurations across both network and web application layers: at minimum one network-level finding (Nmap), two web application findings from ZAP (e.g. SQLi, XSS), and two manually verified findings from Burp Suite. Each finding is mapped to an affected service, CVSS score, and remediation recommendation."
+            }
+          ]
+        },
+        {
+          "name": "Reporting and recommendations",
+          "description": "Trainees compile a structured vulnerability report with findings and mitigation recommendations, submit it to the Report Repository, and receive assessment feedback from the Instructor.",
+          "activities": [
+            {
+              "step": 8,
+              "actor": "Trainee",
+              "target": "Report Repository",
+              "description": "The trainee compiles a structured vulnerability report documenting all discovered findings, including: affected host/service, vulnerability description, CVE reference (where applicable), CVSS severity score, proof-of-concept evidence (Nmap output excerpts), and a prioritised remediation recommendation for each finding. The report is committed to the trainee's Gitea repository.",
+              "tools": [
+                "Gitea Report Repository (http://report-repo.internal:3000/)",
+                "Pentest workstation terminal (git commit + push)",
+                "Nmap results (/opt/pentest/results/)",
+                "LMS vulnerability report template"
+              ],
+              "success_criteria": "Trainee has pushed a vulnerability report (Markdown or PDF) to their Gitea repository covering at least three findings, each with host, port/service, description, severity, and remediation recommendation."
+            },
+            {
+              "step": 9,
+              "actor": "Training Instructor",
+              "target": "Report Repository",
+              "description": "The Training Instructor reviews each trainee's vulnerability report via the Gitea web interface. The review covers: completeness of findings (were all significant vulnerabilities identified?), accuracy of CVE/CVSS mapping, quality of remediation recommendations, and clarity of documentation. The instructor adds inline comments and an overall assessment score via a Gitea issue or pull request review.",
+              "tools": [
+                "Gitea Report Repository (http://report-repo.internal:3000/)",
+                "Instructor console",
+                "Grafana Cohort Dashboard (http://reporting.internal:3000/)"
+              ],
+              "success_criteria": "Instructor has reviewed at least one trainee report in Gitea and added evaluation comments. Cohort progress metrics visible in Grafana dashboard (reports submitted count, average findings per trainee)."
+            },
+            {
+              "step": 10,
+              "actor": "Report Repository",
+              "target": "Trainee",
+              "description": "The Gitea platform delivers personalised assessment feedback to the trainee: inline code review comments on missed findings, the instructor's overall assessment note, a score breakdown per category (scan completeness, vulnerability classification accuracy, remediation quality, report clarity), and recommendations for further study modules.",
+              "tools": [
+                "Gitea Report Repository - Issues / Review comments (http://report-repo.internal:3000/)",
+                "LMS Course Portal - Feedback section (http://lms.internal:8080/)",
+                "REP Practical Labs - Result view"
+              ],
+              "success_criteria": "Trainee can view assessment feedback and score breakdown in Gitea and in the LMS portal. Feedback identifies at least one missed vulnerability and one module recommendation."
+            },
+            {
+              "step": 11,
+              "actor": "Report Repository",
+              "target": "Training Instructor",
+              "description": "The Reporting Workspace (Grafana) presents cohort-level performance metrics to the instructor: report submission rate, average number of findings per trainee, distribution of CVSS scores assigned, vulnerability identification accuracy per category (network recon, service enumeration, web app vulnerabilities), and per-trainee traffic-light status. The instructor can export results via the scan results export script.",
+              "tools": [
+                "Reporting Workspace - Grafana Dashboard (http://reporting.internal:3000/)",
+                "Scan results export script (provisioning/case-2b/scripts/export_scan_results.sh)",
+                "Instructor console",
+                "Gitea Report Repository (http://report-repo.internal:3000/)"
+              ],
+              "success_criteria": "Grafana Network Vuln Overview dashboard shows per-trainee and cohort metrics. Instructor can export a JSON report of scan results and assessment scores. Traffic-light status per trainee is visible (green: all key findings identified, amber: partial findings, red: major findings missed)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

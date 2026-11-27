@@ -1,4 +1,4 @@
-name: lm5-subcase-2b-network-vuln-training
+name: lm5-1b-puc2-subcase-2b-network-vuln-training
 hosts:
   - name: instructor-console
     base_box:
